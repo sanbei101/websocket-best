@@ -6,8 +6,7 @@ export const options = {
         { duration: '10s', target: 1000 },
         { duration: '10s', target: 2000 },
         { duration: '10s', target: 3000 },
-    ],
-    duration: '30s',
+    ]
 };
 
 const TARGET_HOST = __ENV.TARGET_HOST || '127.0.0.1';
