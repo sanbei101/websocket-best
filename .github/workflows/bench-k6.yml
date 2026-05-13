@@ -44,7 +44,7 @@ jobs:
             echo "k6 节点监听未就绪,重试..."
             sleep 1
           done
-          echo "信号发送成功,压测开始！"
+          echo "信号发送成功,压测开始!"
 
       - name: Wait for k6 to finish
         run: nc -l 9999
@@ -91,7 +91,11 @@ jobs:
 
           wait $CPU_PID
           wait $HEAP_PID
-          wait $K6_PID
+          echo "等待 k6结束..."
+          while kill -0 $K6_PID 2>/dev/null; do
+            sleep 1
+          done
+          echo "k6 压测已结束!"
 
       - name: 通知 Server 压测结束
         if: always()
