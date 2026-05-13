@@ -21,7 +21,7 @@ func setupTestServer(b *testing.B) net.Listener {
 
 	server := &http.Server{Handler: mux}
 	go func() {
-		_ = server.Serve(ln)
+		server.Serve(ln)
 	}()
 
 	return ln
