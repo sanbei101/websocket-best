@@ -4,6 +4,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	_ "net/http/pprof"
 	"sync"
 	"syscall"
 
@@ -19,6 +20,12 @@ var (
 )
 
 func main() {
+	go func() {
+		log.Println("🔬 Pprof monitor started on :6063")
+		if err := http.ListenAndServe(":6063", nil); err != nil {
+			log.Fatalf("Pprof server failed: %v", err)
+		}
+	}()
 	mux := http.NewServeMux()
 	mux.HandleFunc("/ws", wsGatewayHandler)
 
