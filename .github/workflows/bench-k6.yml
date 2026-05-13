@@ -40,7 +40,11 @@ jobs:
       - name: 触发k6压测
         run: |
           echo "通知 k6 节点开始压测..."
-          echo "ready" | nc -N bench-k6 9999
+          until echo "ready" | nc -N bench-k6 9999; do
+            echo "k6 节点监听未就绪,重试..."
+            sleep 1
+          done
+          echo "信号发送成功,压测开始！"
 
       - name: Wait for k6 to finish
         run: nc -l 9999
@@ -91,7 +95,10 @@ jobs:
       - name: 通知 Server 压测结束
         run: |
           echo "通知 Server 压测已结束..."
-          echo "done" | nc -N bench-server 9999
+          until echo "done" | nc -N bench-server 9999; do
+            echo "Server 尚未准备好接收结束信号,重试..."
+            sleep 1
+          done
           
       - name: Upload pprof profiles
         if: always()
