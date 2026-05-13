@@ -42,19 +42,30 @@ jobs:
     
     - name: Run benchmarks with pprof
       run: |
-        go test -bench=BenchmarkWSEcho -benchmem -cpuprofile=cpu.prof -memprofile=mem.prof
+        go test -bench=BenchmarkWSEcho -benchmem -cpuprofile=cpu.prof -memprofile=mem.prof | tee bench_output.txt
 
     - name: Analyze pprof
       run: |
+
+        echo "## 📊 性能分析报告" >> $GITHUB_STEP_SUMMARY
+
+        echo '### 测试输出' >> $GITHUB_STEP_SUMMARY
+        echo '```text' >> $GITHUB_STEP_SUMMARY
+        cat bench_output.txt >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+
         echo "### 🔬 CPU 性能分析 (Top 20 自身耗时 - Flat)" >> $GITHUB_STEP_SUMMARY
         echo '```text' >> $GITHUB_STEP_SUMMARY
         go tool pprof -top -nodecount=20 ./bench cpu.prof >> $GITHUB_STEP_SUMMARY
         echo '```' >> $GITHUB_STEP_SUMMARY
+
         echo "### 🔬 CPU 性能分析 (Top 20 累计耗时 - Cum)" >> $GITHUB_STEP_SUMMARY
         echo '```text' >> $GITHUB_STEP_SUMMARY
         go tool pprof -top -cum -nodecount=20 ./bench cpu.prof >> $GITHUB_STEP_SUMMARY
         echo '```' >> $GITHUB_STEP_SUMMARY
+
         # ---------------- 内存分析 ----------------
+        
         echo "### 🧠 内存分配分析 (Top 20 自身分配 - Flat)" >> $GITHUB_STEP_SUMMARY
         echo '```text' >> $GITHUB_STEP_SUMMARY
         go tool pprof -top -nodecount=20 ./bench mem.prof >> $GITHUB_STEP_SUMMARY
