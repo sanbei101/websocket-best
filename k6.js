@@ -1,11 +1,11 @@
 import ws from 'k6/ws';
 import { check } from 'k6';
 
-stages: [
-  { duration: '10s', target: 1000 },
-  { duration: '10s', target: 2000 },
-  { duration: '10s', target: 3000 },
-]
+export const options = {
+    vus: 1000, 
+    duration: '30s',
+    gracefulStop: '3s',
+};
 const TARGET_HOST = __ENV.TARGET_HOST || '127.0.0.1';
 
 export default function () {
