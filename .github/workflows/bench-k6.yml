@@ -75,10 +75,12 @@ jobs:
         run: |
           touch k6.log
 
-          k6 --quiet run k6.js -e TARGET_HOST=bench-server &> >(tee k6.log) &
+          k6 --quiet run k6.js &> >(tee k6.log) &
     
           K6_PID=$!
           echo $K6_PID > /tmp/k6.pid
+        env:
+          TARGET_HOST: bench-server
 
       - name: Collect Pprof Profiles
         run: |

@@ -5,9 +5,10 @@ export const options = {
     vus: 10000,
     duration: '30s',
 };
+const TARGET_HOST = __ENV.TARGET_HOST || '127.0.0.1';
 
 export default function () {
-    const url = 'ws://127.0.0.1:8080/ws';
+    const url = `ws://${TARGET_HOST}:8080/ws`;
     const res = ws.connect(url, function (socket) {
         socket.on('open', () => {
             setInterval(() => {
