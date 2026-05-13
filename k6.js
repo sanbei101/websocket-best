@@ -2,7 +2,7 @@ import ws from 'k6/ws';
 import { check } from 'k6';
 
 export const options = {
-    stage: [
+    stages: [
         { duration: '10s', target: 1000 },
         { duration: '10s', target: 2000 },
         { duration: '10s', target: 3000 },
