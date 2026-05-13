@@ -1,0 +1,133 @@
+name: 多机测试
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: setup go
+        uses: actions/setup-go@v6
+        with:
+          go-version: stable
+          cache: true
+          cache-dependency-path: 'go.sum'
+
+      - name: Build and run server
+        run: |
+          go build -ldflags="-s -w" -o bench .
+          ./bench &
+        env:
+          CGO_ENABLED: 0
+
+      - name: Connect to Tailscale network
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:github-action
+          hostname: bench-server
+
+      - name: 触发k6压测
+        run: |
+          echo "通知 k6 节点开始压测..."
+          echo "ready" | nc -N bench-k6 9999
+
+      - name: Wait for k6 to finish
+        run: nc -l 9999
+            
+  k6-client:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Connect to Tailscale network
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:github-action
+          hostname: bench-k6
+          ping: bench-server
+
+      - name: Setup k6 
+        uses: grafana/setup-k6-action@v1
+    
+      - name: 等待 Server 就绪
+        run: nc -l 9999
+          
+      - name: Run k6 and collect pprof
+        run: |
+          touch k6.log
+
+          k6 --quiet run k6.js -e TARGET_HOST=bench-server &> >(tee k6.log) &
+
+          K6_PID=$!
+          
+
+      - name: Collect Pprof Profiles
+        run: |
+          curl -s -o cpu.prof "http://bench-server:6063/debug/pprof/profile?seconds=20" &
+          CPU_PID=$!
+          
+          (sleep 10 && curl -s -o heap.prof "http://bench-server:6063/debug/pprof/heap") &
+          HEAP_PID=$!
+
+          wait $CPU_PID
+          wait $HEAP_PID
+          wait $K6_PID
+
+      - name: 通知 Server 压测结束
+        run: |
+          echo "通知 Server 压测已结束..."
+          echo "done" | nc -N bench-server 9999
+          
+      - name: Upload pprof profiles
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pprof-profiles
+          path: |
+            cpu.prof
+            heap.prof
+          retention-days: 7
+
+      - name: Publish K6 and Profiling Summary
+        if: always()
+        run: |
+          echo "## 📊 性能分析报告" >> $GITHUB_STEP_SUMMARY
+          echo '### K6 测试输出' >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          cat k6.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          echo "### 🔬 CPU 性能分析 (Top 20 自身耗时 - Flat)" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          go tool pprof -top -nodecount=20 cpu.prof >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          echo "### 🔬 CPU 性能分析 (Top 20 累计耗时 - Cum)" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          go tool pprof -top -cum -nodecount=20 cpu.prof >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          echo "### 🧠 内存分配分析 (Top 20 自身分配 - Flat)" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          go tool pprof -top -nodecount=20 heap.prof >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          
+          echo "### 🧠 内存分配分析 (Top 20 累计分配 - Cum)" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          go tool pprof -top -cum -nodecount=20 heap.prof >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

@@ -1,4 +1,4 @@
-name: WebSocket Benchmark
+name: 单机测试
 
 on:
   push:
@@ -65,7 +65,7 @@ jobs:
         echo '```' >> $GITHUB_STEP_SUMMARY
 
         # ---------------- 内存分析 ----------------
-        
+
         echo "### 🧠 内存分配分析 (Top 20 自身分配 - Flat)" >> $GITHUB_STEP_SUMMARY
         echo '```text' >> $GITHUB_STEP_SUMMARY
         go tool pprof -top -nodecount=20 ./bench mem.prof >> $GITHUB_STEP_SUMMARY
