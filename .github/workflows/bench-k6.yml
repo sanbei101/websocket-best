@@ -56,6 +56,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: setup go
+        uses: actions/setup-go@v6
+        with:
+          go-version: stable
+          cache: true
+          
       - name: Connect to Tailscale network
         uses: tailscale/github-action@v4
         with:
