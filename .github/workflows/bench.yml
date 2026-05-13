@@ -7,6 +7,10 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   benchmark:
     name: Run Benchmarks and Report
@@ -23,15 +27,21 @@ jobs:
         cache: true
         cache-dependency-path: 'go.sum'
 
-    - name: Run Go Benchmarks
-      id: bench
-      run: |
-        go test -run=^$ -bench=BenchmarkWSEcho -benchmem -cpu=4 | tee bench_output.txt
+    - name: Run the benchmarks
+      uses: CodSpeedHQ/action@v4
+      with:
+        mode: walltime
+        run: go test -bench=BenchmarkWSEcho
 
-    - name: Parse Benchmark Results
-      id: parse
-      run: |
-        echo '## Benchmark Results' > $GITHUB_STEP_SUMMARY
-        echo '```' >> $GITHUB_STEP_SUMMARY
-        cat bench_output.txt >> $GITHUB_STEP_SUMMARY
-        echo '```' >> $GITHUB_STEP_SUMMARY
+    # - name: Run Go Benchmarks
+    #   id: bench
+    #   run: |
+    #     go test -run=^$ -bench=BenchmarkWSEcho -benchmem -cpu=4 | tee bench_output.txt
+
+    # - name: Parse Benchmark Results
+    #   id: parse
+    #   run: |
+    #     echo '## Benchmark Results' > $GITHUB_STEP_SUMMARY
+    #     echo '```' >> $GITHUB_STEP_SUMMARY
+    #     cat bench_output.txt >> $GITHUB_STEP_SUMMARY
+    #     echo '```' >> $GITHUB_STEP_SUMMARY
