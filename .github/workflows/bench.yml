@@ -1,0 +1,36 @@
+name: WebSocket Benchmark
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  benchmark:
+    name: Run Benchmarks and Report
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v6
+
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version: stable
+        cache: true
+        cache-dependency-path: 'go.sum'
+
+    - name: Run Go Benchmarks
+      id: bench
+      run: |
+        go test -run=^$ -bench=BenchmarkWSEcho -benchmem -cpu=4 | tee bench_output.txt
+
+    - name: Parse Benchmark Results
+      id: parse
+      run: |
+        echo '## Benchmark Results' > $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        cat bench_output.txt >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
