@@ -2,17 +2,22 @@ import ws from 'k6/ws';
 import { check } from 'k6';
 
 export const options = {
-    vus: 1000, 
+    stage: [
+        { duration: '10s', target: 1000 },
+        { duration: '10s', target: 2000 },
+        { duration: '10s', target: 3000 },
+    ],
     duration: '30s',
-    gracefulStop: '3s',
 };
+
 const TARGET_HOST = __ENV.TARGET_HOST || '127.0.0.1';
 
 export default function () {
     const url = `ws://${TARGET_HOST}:8080/ws`;
-    const res = ws.connect(url, function (socket) {
+    
+    ws.connect(url, function (socket) {
         socket.on('open', () => {
-            setInterval(() => {
+            socket.setInterval(function timeout() {
                 socket.send('hello, extreme low latency!');
             }, 1000);
         });
@@ -20,5 +25,9 @@ export default function () {
         socket.on('message', (msg) => {
             check(msg, { 'is correct': (r) => r === 'hello, extreme low latency!' });
         });
+
+        socket.setTimeout(function () {
+            socket.close();
+        }, 30000); 
     });
 }
