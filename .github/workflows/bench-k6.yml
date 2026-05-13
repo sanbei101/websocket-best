@@ -106,7 +106,6 @@ jobs:
           echo "k6 压测已结束!"
 
       - name: 通知 Server 压测结束
-        if: always()
         run: |
           echo "通知 Server 压测已结束..."
           until echo "done" | nc -N bench-server 9999; do
