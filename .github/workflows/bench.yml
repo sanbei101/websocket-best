@@ -35,7 +35,7 @@ jobs:
     
     - name: Run benchmarks with pprof
       run: |
-        go test -bench=BenchmarkWSEcho -benchmem -cpuprof=cpu.prof -memprof=mem.prof
+        go test -bench=BenchmarkWSEcho -benchmem -cpuprofile=cpu.prof -memprofile=mem.prof
 
     - name: Analyze pprof
       run: |
