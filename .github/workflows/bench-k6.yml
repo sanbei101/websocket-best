@@ -76,12 +76,13 @@ jobs:
           touch k6.log
 
           k6 --quiet run k6.js -e TARGET_HOST=bench-server &> >(tee k6.log) &
-
+    
           K6_PID=$!
-          
+          echo $K6_PID > /tmp/k6.pid
 
       - name: Collect Pprof Profiles
         run: |
+          K6_PID=$(cat /tmp/k6.pid)
           curl -s -o cpu.prof "http://bench-server:6063/debug/pprof/profile?seconds=20" &
           CPU_PID=$!
           
@@ -93,6 +94,7 @@ jobs:
           wait $K6_PID
 
       - name: 通知 Server 压测结束
+        if: always()
         run: |
           echo "通知 Server 压测已结束..."
           until echo "done" | nc -N bench-server 9999; do
