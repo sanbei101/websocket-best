@@ -61,7 +61,7 @@ jobs:
         with:
           go-version: stable
           cache: true
-          
+
       - name: Connect to Tailscale network
         uses: tailscale/github-action@v4
         with:
@@ -130,7 +130,7 @@ jobs:
           echo "## 📊 性能分析报告" >> $GITHUB_STEP_SUMMARY
           echo '### K6 测试输出' >> $GITHUB_STEP_SUMMARY
           echo '```text' >> $GITHUB_STEP_SUMMARY
-          cat k6.log >> $GITHUB_STEP_SUMMARY
+          tail -n 100 k6.log >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
           echo "### 🔬 CPU 性能分析 (Top 20 自身耗时 - Flat)" >> $GITHUB_STEP_SUMMARY
