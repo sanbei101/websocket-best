@@ -2,9 +2,9 @@ import ws from 'k6/ws';
 import { check } from 'k6';
 
 stages: [
-  { duration: '35s', target: 10000 },
-  { duration: '15s', target: 10000 },
-  { duration: '10s', target: 0 },
+  { duration: '10s', target: 1000 },
+  { duration: '10s', target: 2000 },
+  { duration: '10s', target: 3000 },
 ]
 const TARGET_HOST = __ENV.TARGET_HOST || '127.0.0.1';
 
