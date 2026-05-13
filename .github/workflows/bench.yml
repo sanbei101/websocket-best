@@ -32,16 +32,36 @@ jobs:
       with:
         mode: walltime
         run: go test -bench=BenchmarkWSEcho
+    
+    - name: Run benchmarks with pprof
+      run: |
+        go test -bench=BenchmarkWSEcho -benchmem -cpuprof=cpu.prof -memprof=mem.prof
 
-    # - name: Run Go Benchmarks
-    #   id: bench
-    #   run: |
-    #     go test -run=^$ -bench=BenchmarkWSEcho -benchmem -cpu=4 | tee bench_output.txt
-
-    # - name: Parse Benchmark Results
-    #   id: parse
-    #   run: |
-    #     echo '## Benchmark Results' > $GITHUB_STEP_SUMMARY
-    #     echo '```' >> $GITHUB_STEP_SUMMARY
-    #     cat bench_output.txt >> $GITHUB_STEP_SUMMARY
-    #     echo '```' >> $GITHUB_STEP_SUMMARY
+    - name: Analyze pprof
+      run: |
+        echo "### 🔬 CPU 性能分析 (Top 20 自身耗时 - Flat)" >> $GITHUB_STEP_SUMMARY
+        echo '```text' >> $GITHUB_STEP_SUMMARY
+        go tool pprof -top -nodecount=20 ./bench cpu.prof >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        echo "### 🔬 CPU 性能分析 (Top 20 累计耗时 - Cum)" >> $GITHUB_STEP_SUMMARY
+        echo '```text' >> $GITHUB_STEP_SUMMARY
+        go tool pprof -top -cum -nodecount=20 ./bench cpu.prof >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        # ---------------- 内存分析 ----------------
+        echo "### 🧠 内存分配分析 (Top 20 自身分配 - Flat)" >> $GITHUB_STEP_SUMMARY
+        echo '```text' >> $GITHUB_STEP_SUMMARY
+        go tool pprof -top -nodecount=20 ./bench mem.prof >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        
+        echo "### 🧠 内存分配分析 (Top 20 累计分配 - Cum)" >> $GITHUB_STEP_SUMMARY
+        echo '```text' >> $GITHUB_STEP_SUMMARY
+        go tool pprof -top -cum -nodecount=20 ./bench mem.prof >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+      
+    - name: Upload pprof results
+      uses: actions/upload-artifact@v7
+      with:
+        name: gatewaybench-pprof-results
+        path: |
+          cpu.prof
+          mem.prof
