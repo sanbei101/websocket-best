@@ -27,7 +27,14 @@ jobs:
         cache: true
         cache-dependency-path: 'go.sum'
 
+    - name: Install dependencies with cache
+      uses: awalsh128/cache-apt-pkgs-action@latest
+      with:
+        packages: libc6-dbg
+        version: 1.0
+
     - name: Run the benchmarks
+
       uses: CodSpeedHQ/action@v4
       with:
         mode: walltime
