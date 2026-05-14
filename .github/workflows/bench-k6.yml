@@ -94,7 +94,6 @@ jobs:
 
       - name: Collect Pprof Profiles
         run: |
-          K6_PID=$(cat /tmp/k6.pid)
           curl -s -o cpu.prof "http://${SERVER_HOST}:6063/debug/pprof/profile?seconds=20" &
           CPU_PID=$!
 
@@ -103,13 +102,17 @@ jobs:
 
           wait $CPU_PID
           wait $HEAP_PID
-          echo "等待 k6结束..."
+        env:
+          SERVER_HOST: ${{ env.SERVER_HOST }}
+
+      - name: 等待 K6 Bench 完成
+        run: |
+          K6_PID=$(cat /tmp/k6.pid)
+          echo "等待 k6 进程 (PID: $K6_PID) 结束..."
           while kill -0 $K6_PID 2>/dev/null; do
             sleep 1
           done
-          echo "k6 压测已结束!"
-        env:
-          SERVER_HOST: ${{ env.SERVER_HOST }}
+          echo "k6 进程已结束!"
 
       - name: 通知 Server 压测结束
         run: |
@@ -120,7 +123,7 @@ jobs:
           done
         env:
           SERVER_HOST: ${{ env.SERVER_HOST }}
-          
+
       - name: Upload pprof profiles
         if: always()
         uses: actions/upload-artifact@v7
