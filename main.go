@@ -27,8 +27,9 @@ var stateKey = ctxKey{}
 var errNotEnough = errors.New("not enough data")
 
 func init() {
-	// I/O 极重的网关场景:每个 P 配一个 poller
-	netpoll.SetNumLoops(runtime.GOMAXPROCS(0))
+	netpoll.Configure(netpoll.Config{
+		PollerNum: runtime.GOMAXPROCS(0),
+	})
 }
 
 func main() {
@@ -66,7 +67,6 @@ func onPrepare(connection netpoll.Connection) context.Context {
 func onRequest(ctx context.Context, connection netpoll.Connection) error {
 	state := ctx.Value(stateKey).(*connState)
 
-	// 握手仍走 gobwas/ws.Upgrade(每条连接只发生一次,阻塞可接受)
 	if !state.upgraded {
 		if _, err := ws.Upgrade(connection); err != nil {
 			return err
@@ -74,14 +74,13 @@ func onRequest(ctx context.Context, connection netpoll.Connection) error {
 		state.upgraded = true
 	}
 
-	// 尽可能消费当前 buffer 里所有完整帧
 	for {
 		err := processOneFrame(connection)
 		if errors.Is(err, errNotEnough) {
-			return nil // 数据不够,等下次 OnRequest 被触发
+			return nil
 		}
 		if err != nil {
-			return err // 关连接
+			return err
 		}
 	}
 }
