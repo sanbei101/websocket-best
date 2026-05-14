@@ -7,68 +7,59 @@ export const options = {
         { duration: '10s', target: 3000 },
         { duration: '10s', target: 4000 },
         { duration: '10s', target: 5000 },
-    ],
+    ]
 };
 
 const TARGET_HOST = __ENV.TARGET_HOST || '127.0.0.1';
+const MSG = 'hello, extreme low latency!';
 
 const wsMsgLatency = new Trend('ws_msg_latency', true);
 const wsMsgTimeout = new Counter('ws_msg_timeout');
+const wsMsgMatched = new Counter('ws_msg_matched');
+const wsMsgUnexpected = new Counter('ws_msg_unexpected');
 
 export default function () {
     const url = `ws://${TARGET_HOST}:8080/ws`;
 
     ws.connect(url, function (socket) {
-        let seq = 0;
-        const pending = new Map();
+        const pending = [];
 
         socket.on('open', () => {
-            socket.setInterval(function () {
-                const id = `${__VU}-${__ITER}-${seq++}`;
-                const now = Date.now();
-
-                const payload = {
-                    id,
-                    body: 'hello, extreme low latency!',
-                    sentAt: now,
-                };
-
-                pending.set(id, now);
-                socket.send(JSON.stringify(payload));
+            socket.setInterval(() => {
+                pending.push(Date.now());
+                socket.send(MSG);
             }, 1000);
         });
 
         socket.on('message', (msg) => {
-            let data;
+            check(msg, {
+                'is correct': (r) => r === MSG,
+            });
 
-            try {
-                data = JSON.parse(msg);
-            } catch (e) {
+            if (msg !== MSG) {
+                wsMsgUnexpected.add(1);
                 return;
             }
 
-            check(data, {
-                'body is correct': (r) => r.body === 'hello, extreme low latency!',
-            });
-
-            if (data.id && pending.has(data.id)) {
-                const start = pending.get(data.id);
-                wsMsgLatency.add(Date.now() - start);
-                pending.delete(data.id);
+            if (pending.length === 0) {
+                wsMsgUnexpected.add(1);
+                return;
             }
+
+            const start = pending.shift();
+            wsMsgLatency.add(Date.now() - start);
+            wsMsgMatched.add(1);
         });
 
-        socket.setInterval(function () {
+        socket.setInterval(() => {
             const now = Date.now();
-            for (const [id, start] of pending) {
-                if (now - start > 5000) {
-                    wsMsgTimeout.add(1);
-                    pending.delete(id);
-                }
+            while (pending.length > 0 && now - pending[0] > 15000) {
+                pending.shift();
+                wsMsgTimeout.add(1);
             }
         }, 1000);
 
-        socket.setTimeout(function () {
+        socket.setTimeout(() => {
             socket.close();
         }, 30000);
     });
