@@ -4,9 +4,9 @@ import { Trend, Counter } from 'k6/metrics';
 
 export const options = {
     stages: [
-        { duration: '10s', target: 5000 },
         { duration: '10s', target: 10000 },
-        { duration: '10s', target: 20000 },
+        { duration: '20s', target: 20000 },
+        { duration: '30s', target: 30000 },
     ]
 };
 
