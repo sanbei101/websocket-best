@@ -56,6 +56,7 @@ func handleConnection(conn net.Conn) {
 		if err != nil {
 			break
 		}
+
 		if header.Length > 4096 {
 			log.Println("Payload too large")
 			break
@@ -64,31 +65,27 @@ func handleConnection(conn net.Conn) {
 		buf := bufPool.Get().(*bytes.Buffer)
 		buf.Reset()
 
-		buf.Grow(int(header.Length))
-		payload := buf.Bytes()[:header.Length]
-
-		if _, err := io.ReadFull(conn, payload); err != nil {
-			bufPool.Put(buf)
-			break
-		}
-
-		if header.Masked {
-			ws.Cipher(payload, header.Mask, 0)
-		}
-
 		respHeader := ws.Header{
 			Fin:    true,
-			OpCode: ws.OpText,
-			Length: int64(len(payload)),
+			OpCode: header.OpCode,
+			Length: header.Length,
 		}
 
-		buf.Reset()
 		if err := ws.WriteHeader(buf, respHeader); err != nil {
 			bufPool.Put(buf)
 			break
 		}
 
-		buf.Write(payload)
+		if _, err := io.CopyN(buf, conn, header.Length); err != nil {
+			bufPool.Put(buf)
+			break
+		}
+
+		if header.Masked {
+			bBytes := buf.Bytes()
+			payload := bBytes[len(bBytes)-int(header.Length):]
+			ws.Cipher(payload, header.Mask, 0)
+		}
 
 		if _, err := conn.Write(buf.Bytes()); err != nil {
 			bufPool.Put(buf)
