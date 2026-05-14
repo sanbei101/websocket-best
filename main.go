@@ -6,7 +6,6 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"sync"
-	"syscall"
 
 	"github.com/gobwas/ws"
 )
@@ -46,27 +45,7 @@ func wsGatewayHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	optimizeSocket(conn)
-
 	go handleConnection(conn)
-}
-
-func optimizeSocket(conn net.Conn) {
-	tcpConn, ok := conn.(*net.TCPConn)
-	if !ok {
-		return
-	}
-
-	tcpConn.SetNoDelay(true)
-	tcpConn.SetKeepAlive(true)
-
-	rawConn, err := tcpConn.SyscallConn()
-	if err == nil {
-		rawConn.Control(func(fd uintptr) {
-			syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_RCVBUF, 4096)
-			syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_SNDBUF, 4096)
-		})
-	}
 }
 
 func handleConnection(conn net.Conn) {
