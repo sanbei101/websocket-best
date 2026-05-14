@@ -4,9 +4,9 @@ import { Trend, Counter } from 'k6/metrics';
 
 export const options = {
     stages: [
-        { duration: '10s', target: 3000 },
-        { duration: '10s', target: 4000 },
         { duration: '10s', target: 5000 },
+        { duration: '10s', target: 10000 },
+        { duration: '10s', target: 20000 },
     ]
 };
 
@@ -28,7 +28,7 @@ export default function () {
             socket.setInterval(() => {
                 pending.push(Date.now());
                 socket.send(MSG);
-            }, 1000);
+            }, 5000);
         });
 
         socket.on('message', (msg) => {
@@ -58,9 +58,5 @@ export default function () {
                 wsMsgTimeout.add(1);
             }
         }, 1000);
-
-        socket.setTimeout(() => {
-            socket.close();
-        }, 30000);
     });
 }
