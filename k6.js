@@ -6,6 +6,8 @@ export const options = {
         { duration: '10s', target: 1000 },
         { duration: '10s', target: 2000 },
         { duration: '10s', target: 3000 },
+        { duration: '10s', target: 4000 },
+        { duration: '10s', target: 5000 },
     ]
 };
 
